@@ -147,7 +147,6 @@ void Render()
 	a += 0.1f;
 	for (int i = 0; i < 20; i++)
 	{
-
 		const float sx = 200 + sinf(a + i * 0.1f) * 60.0f;
 		const float sy = 200 + cosf(a + i * 0.1f) * 60.0f;
 		const float ex = 700 - sinf(a + i * 0.1f) * 60.0f;

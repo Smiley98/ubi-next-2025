@@ -27,10 +27,6 @@ namespace App
 		APP_VIRTUAL_TO_NATIVE_COORDS(startX, startY);
 		APP_VIRTUAL_TO_NATIVE_COORDS(endX, endY);
 #endif
-		GL_MODELVIEW;
-		GL_PROJECTION;
-		GL_MODELVIEW_MATRIX;
-		GL_PROJECTION_MATRIX;
 		glBegin(GL_LINES);
 		glColor3f(r, g, b); // Yellow
 		glVertex2f(startX, startY);
