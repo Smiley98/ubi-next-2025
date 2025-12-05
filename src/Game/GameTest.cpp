@@ -10,30 +10,75 @@
 struct Mesh
 {
 	size_t face_count = 0;
-	std::vector<Vector3> positions;	// size is face_count * 3 because triangles have 3 vertices xD xD xD
-	std::vector<Vector3> colors;	// size is face_count because vertices are flat-shaded
+	std::vector<Vector3> positions;	// size is face_count * 3
+	std::vector<Vector3> normals;	// size is face_count * 3
 	std::vector<uint16_t> indices;
 };
 
 void UnloadMesh(Mesh* mesh)
 {
 	mesh->positions.resize(0);
-	mesh->colors.resize(0);
+	mesh->normals.resize(0);
 	mesh->indices.resize(0);
 	mesh->face_count = 0;
 }
 
-void DrawMesh(Mesh mesh, Matrix mvp, Vector3 color = Vector3Ones, bool wireframe = false)
+struct UniformData
 {
+	Matrix world;
+	Matrix mvp;
+
+	Vector3 light_color;
+	Vector3 light_direction;
+};
+
+void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe = false)
+{
+	Matrix normal_matrix = MatrixNormal(data.world);
 	for (size_t f = 0; f < mesh.face_count; f++)
 	{
+		// Note -- just copy each vertex attribute 1 triangle at a time because we have better things to do than debug memory corruption...
 		size_t v = f * 3;
 
-		Vector3 v0 = MatrixPerspectiveDivide(mvp, mesh.positions[v + 0]);
-		Vector3 v1 = MatrixPerspectiveDivide(mvp, mesh.positions[v + 1]);
-		Vector3 v2 = MatrixPerspectiveDivide(mvp, mesh.positions[v + 2]);
+		Vector3 world_positions[] =
+		{
+			mesh.positions[v + 0],
+			mesh.positions[v + 1],
+			mesh.positions[v + 2]
+		};
 
-		Vector3 c = mesh.colors.empty() ? color : mesh.colors[f];
+		Vector3 world_normals[] =
+		{
+			mesh.normals[v + 0],
+			mesh.normals[v + 1],
+			mesh.normals[v + 2]
+		};
+
+		Vector3 clip[] =
+		{
+			mesh.positions[v + 0],
+			mesh.positions[v + 1],
+			mesh.positions[v + 2]
+		};
+
+		for (size_t i = 0; i < 3; i++)
+		{
+			world_positions[i] *= data.world;
+			world_normals[i] *= normal_matrix;
+			clip[i] = MatrixPerspectiveDivide(data.mvp, clip[i]);
+		}
+
+		Vector3 v0 = clip[0];
+		Vector3 v1 = clip[1];
+		Vector3 v2 = clip[2];
+
+		// Potential data reduction -- divide normals by 3 when defining mesh because we know all 3 vertex normals are identical per-triangle
+		Vector3 n0 = world_normals[0];
+		Vector3 n1 = world_normals[1];
+		Vector3 n2 = world_normals[2];
+		Vector3 n = n0;	// <-- all 3 normals are identical per-face.
+
+		Vector3 c = n;
 		App::DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, c.x, c.y, c.z, wireframe);
 	}
 }
@@ -59,8 +104,25 @@ void Init()
 		m.positions[1] = { 0.0f,  0.5f, 0.0f };
 		m.positions[2] = { -0.5f, -0.5f, 0.0f };
 
-		m.colors.resize(m.face_count * 1);
-		m.colors[0] = Vector3UnitX;
+		m.normals.resize(m.face_count * 3);
+		for (Vector3& n : m.normals)
+			n = Vector3UnitZ;
+	}
+
+	{
+		std::vector<Vector3> plane_positions
+		{
+			{  0.5f, -0.5f, 0.0f },	// bottom-right
+			{  0.5f,  0.5f, 0.0f },	// top-right
+			{ -0.5f,  0.5f, 0.0f },	// top-left
+			{ -0.5f, -0.5f, 0.0f },	// bottom-left
+		};
+
+		std::vector<uint16_t> plane_indices
+		{
+			0, 1, 3,
+			1, 2, 3
+		};
 	}
 	
 	// TODO -- figure out how to use index buffer for meshes with more than 3 vertices xD xD xD
@@ -74,16 +136,19 @@ void Update(const float deltaTime)
 
 void Render()
 {
-	Matrix world = MatrixRotateZ(100.0f * tt * DEG2RAD) * MatrixTranslate(0.0f, 0.0f, 5.0f + sinf(tt) * 3.0f);
+	Matrix world = MatrixRotateZ(100.0f * tt * DEG2RAD) * MatrixTranslate(0.0f, 0.0f, 5.0f + sinf(tt) * 4.5f);
 	Matrix view = MatrixLookAt({ 0.0f, 0.0f, 10.0f }, Vector3Zeros, Vector3UnitY);
 	Matrix proj = MatrixPerspective(90.0f * DEG2RAD, APP_VIRTUAL_WIDTH / (float)APP_VIRTUAL_HEIGHT, 0.1f, 100.0f);
-	Matrix mvp = world * view * proj;
+
+	UniformData data;
+	data.world = world;
+	data.mvp = world * view * proj;
 
 	static int mesh = MESH_TRIANGLE;
 	if (App::IsKeyPressed(App::KEY_TAB))
 		++mesh %= MESH_TYPE_COUNT;
 
-	DrawMesh(meshes[mesh], mvp);
+	DrawMesh(meshes[mesh], data);
 }
 
 void Shutdown()
