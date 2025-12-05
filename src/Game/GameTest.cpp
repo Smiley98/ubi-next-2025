@@ -38,14 +38,20 @@ void DrawMesh(Mesh mesh, Matrix mvp, Vector3 color = Vector3Ones, bool wireframe
 	}
 }
 
+enum MeshType
+{
+	MESH_TRIANGLE,
+	MESH_PLANE,
+	MESH_TYPE_COUNT
+};
+
 static float tt = 0.0f;
-static Mesh mesh_triangle;
-static Mesh mesh_plane;
+static Mesh meshes[MESH_TYPE_COUNT];
 
 void Init()
 {
 	{
-		Mesh& m = mesh_triangle;
+		Mesh& m = meshes[MESH_TRIANGLE];
 		m.face_count = 1;
 
 		m.positions.resize(m.face_count * 3);
@@ -73,10 +79,15 @@ void Render()
 	Matrix proj = MatrixPerspective(90.0f * DEG2RAD, APP_VIRTUAL_WIDTH / (float)APP_VIRTUAL_HEIGHT, 0.1f, 100.0f);
 	Matrix mvp = world * view * proj;
 
-	DrawMesh(mesh_triangle, mvp);
+	static int mesh = MESH_TRIANGLE;
+	if (App::IsKeyPressed(App::KEY_TAB))
+		++mesh %= MESH_TYPE_COUNT;
+
+	DrawMesh(meshes[mesh], mvp);
 }
 
 void Shutdown()
 {
-	UnloadMesh(&mesh_triangle);
+	for (int i = 0; i < MESH_TYPE_COUNT; i++)
+		UnloadMesh(&meshes[i]);
 }
