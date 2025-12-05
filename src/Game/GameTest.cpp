@@ -7,21 +7,57 @@
 #include "raymath.h"
 #include "../ContestAPI/app.h"
 
-void Draw(std::vector<Vector3> positions, Matrix mvp, Vector3 color = Vector3Ones, bool wireframe = false)
+struct Mesh
 {
-	for (Vector3& v : positions)
-		v = MatrixPerspectiveDivide(mvp, v);
+	size_t face_count = 0;
+	std::vector<Vector3> positions;	// size is face_count * 3 because triangles have 3 vertices xD xD xD
+	std::vector<Vector3> colors;	// size is face_count because vertices are flat-shaded
+	std::vector<uint16_t> indices;
+};
 
-	Vector3 v0 = positions[0];
-	Vector3 v1 = positions[1];
-	Vector3 v2 = positions[2];
-	App::DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, color.x, color.y, color.z, wireframe);
+void UnloadMesh(Mesh* mesh)
+{
+	mesh->positions.resize(0);
+	mesh->colors.resize(0);
+	mesh->indices.resize(0);
+	mesh->face_count = 0;
+}
+
+void DrawMesh(Mesh mesh, Matrix mvp, Vector3 color = Vector3Ones, bool wireframe = false)
+{
+	for (size_t f = 0; f < mesh.face_count; f++)
+	{
+		size_t v = f * 3;
+
+		Vector3 v0 = MatrixPerspectiveDivide(mvp, mesh.positions[v + 0]);
+		Vector3 v1 = MatrixPerspectiveDivide(mvp, mesh.positions[v + 1]);
+		Vector3 v2 = MatrixPerspectiveDivide(mvp, mesh.positions[v + 2]);
+
+		Vector3 c = mesh.colors.empty() ? color : mesh.colors[f];
+		App::DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, c.x, c.y, c.z, wireframe);
+	}
 }
 
 static float tt = 0.0f;
+static Mesh mesh_triangle;
+static Mesh mesh_plane;
 
 void Init()
 {
+	{
+		Mesh& m = mesh_triangle;
+		m.face_count = 1;
+
+		m.positions.resize(m.face_count * 3);
+		m.positions[0] = { 0.5f, -0.5f, 0.0f };
+		m.positions[1] = { 0.0f,  0.5f, 0.0f };
+		m.positions[2] = { -0.5f, -0.5f, 0.0f };
+
+		m.colors.resize(m.face_count * 1);
+		m.colors[0] = Vector3UnitX;
+	}
+	
+	// TODO -- figure out how to use index buffer for meshes with more than 3 vertices xD xD xD
 }
 
 void Update(const float deltaTime)
@@ -37,15 +73,10 @@ void Render()
 	Matrix proj = MatrixPerspective(90.0f * DEG2RAD, APP_VIRTUAL_WIDTH / (float)APP_VIRTUAL_HEIGHT, 0.1f, 100.0f);
 	Matrix mvp = world * view * proj;
 
-	std::vector<Vector3> triangle;
-	triangle.resize(3);
-	triangle[0] = { 0.5f, -0.5f, 0.0f };
-	triangle[1] = { 0.0f,  0.5f, 0.0f };
-	triangle[2] = { -0.5f, -0.5f, 0.0f };
-
-	Draw(triangle, mvp);
+	DrawMesh(mesh_triangle, mvp);
 }
 
 void Shutdown()
 {
+	UnloadMesh(&mesh_triangle);
 }
