@@ -24,7 +24,7 @@ void DrawMesh(const Mesh& mesh, const UniformData& data, FragmentShader shader, 
 			faces[f].positions_world[i] = position_local * data.world;
 			faces[f].positions_clip[i] = MatrixPerspectiveDivide(data.mvp, position_local);
 		}
-		faces[f].normal_world = mesh.normals[f] * normal_matrix;
+		faces[f].normal_world = Vector3Normalize(mesh.normals[f] * normal_matrix);
 	}
 
 	auto pr = [](const Face& a, const Face& b)

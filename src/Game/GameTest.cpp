@@ -44,18 +44,24 @@ void Update(const float deltaTime)
 
 void Render()
 {
+	Vector3 eye = { 0.0f, 0.0f, 10.0f };
 	Matrix world = MatrixScale(Vector3Ones * 3.0f);// *MatrixRotateY(100.0f * tt * DEG2RAD)* MatrixTranslate(0.0f, 0.0f, 0.0f);
-	Matrix view = MatrixLookAt({ 0.0f, 0.0f, 10.0f }, Vector3Zeros, Vector3UnitY);
+	Matrix view = MatrixLookAt(eye, Vector3Zeros, Vector3UnitY);
 	Matrix proj = MatrixPerspective(90.0f * DEG2RAD, APP_VIRTUAL_WIDTH / (float)APP_VIRTUAL_HEIGHT, 0.1f, 100.0f);
 
 	UniformData data;
 	data.world = world;
 	data.mvp = world * view * proj;
+
+	data.camera_position = eye;
 	data.object_color = Vector3Normalize(Vector3UnitX);
+
 	data.light_color = Vector3Ones;
-	data.light_position = Vector3Zeros * MatrixTranslate(sinf(tt) * 10.0f, 0.0f, 5.0f);
+	data.light_position = { sinf(tt) * 10.0f, 0.0f, 10.0f };
 	data.ambient_strength = 0.1f;
-	data.diffuse_strength = 1.0f;
+	data.diffuse_strength = 0.5f;
+	data.specular_strength = 0.25f;
+	data.specular_exponent = 32.0f;
 
 	const CController& cont = CSimpleControllers::GetInstance().GetController();
 
