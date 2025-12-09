@@ -49,9 +49,8 @@ void Init()
 		m.positions[1] = { 0.0f,  0.5f, 0.0f };
 		m.positions[2] = { -0.5f, -0.5f, 0.0f };
 
-		m.normals.resize(m.face_count * 3);
-		for (Vector3& n : m.normals)
-			n = Vector3UnitZ;
+		m.normals.resize(m.face_count);
+		m.normals[0] = Vector3UnitZ;
 	}
 
 	{
@@ -61,10 +60,6 @@ void Init()
 		m.positions[1] = { 0.5f,  0.5f, 0.0f };		// top-right
 		m.positions[2] = { -0.5f,  0.5f, 0.0f };	// top-left
 		m.positions[3] = { -0.5f, -0.5f, 0.0f };	// bottom-left
-
-		m.normals.resize(4);
-		for (Vector3& n : m.normals)
-			n = Vector3UnitZ;
 
 		std::vector<uint16_t> indices
 		{
