@@ -11,6 +11,7 @@ enum MeshType
 	MESH_TRIANGLE,
 	MESH_PLANE,
 	MESH_SPHERE,
+	MESH_HEAD,
 	MESH_TYPE_COUNT
 };
 
@@ -92,6 +93,7 @@ void InitMeshes()
 	}
 
 	MeshImport(&meshes[MESH_SPHERE], "./data/TestData/sphere.vbo_nxt");
+	MeshImport(&meshes[MESH_HEAD], "./data/TestData/head.vbo_nxt");
 
 	// Initialization sanity-check
 	for (int i = 0; i < MESH_TYPE_COUNT; i++)
