@@ -3,6 +3,7 @@
 #endif
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <cassert>
 #include "raymath.h"
@@ -22,6 +23,15 @@ struct Mesh
 	std::vector<Vector3> normals;	// size is face_count
 };
 
+// Mesh binary (.vbo_nxt) file structure:
+//struct MeshVboNxt
+//{
+//	size_t position_count = 0;
+//	size_t index_count = 0;
+//	std::vector<Vector3> positions;
+//	std::vector<Vector3> indices;
+//};
+
 struct UniformData
 {
 	Matrix world;
@@ -31,7 +41,8 @@ struct UniformData
 	Vector3 light_direction;
 };
 
-void TriangulateMesh(Mesh* mesh, std::vector<uint16_t> indices);
+void ImportMesh(Mesh* mesh, const char* filename);
+void TriangulateMesh(Mesh* mesh, const std::vector<Vector3>& positions, const std::vector<uint16_t>& indices);
 void UnloadMesh(Mesh* mesh);
 void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe = false);
 
@@ -54,12 +65,12 @@ void Init()
 	}
 
 	{
-		Mesh& m = meshes[MESH_PLANE];
-		m.positions.resize(4);
-		m.positions[0] = { 0.5f, -0.5f, 0.0f };		// bottom-right
-		m.positions[1] = { 0.5f,  0.5f, 0.0f };		// top-right
-		m.positions[2] = { -0.5f,  0.5f, 0.0f };	// top-left
-		m.positions[3] = { -0.5f, -0.5f, 0.0f };	// bottom-left
+		std::vector<Vector3> positions;
+		positions.resize(4);
+		positions[0] = { 0.5f, -0.5f, 0.0f };	// bottom-right
+		positions[1] = { 0.5f,  0.5f, 0.0f };	// top-right
+		positions[2] = { -0.5f,  0.5f, 0.0f };	// top-left
+		positions[3] = { -0.5f, -0.5f, 0.0f };	// bottom-left
 
 		std::vector<uint16_t> indices
 		{
@@ -67,7 +78,7 @@ void Init()
 			1, 2, 3
 		};
 
-		TriangulateMesh(&m, indices);
+		TriangulateMesh(&meshes[MESH_PLANE], positions, indices);
 	}
 
 	// Initialization sanity-check
@@ -110,10 +121,30 @@ void Shutdown()
 		UnloadMesh(&meshes[i]);
 }
 
-void TriangulateMesh(Mesh* mesh, std::vector<uint16_t> indices)
+void ImportMesh(Mesh* mesh, const char* filename)
 {
-	std::vector<Vector3> positions_src = mesh->positions;
+	std::ifstream in;
+	in.open(filename, std::ios::binary);
 
+	size_t position_count = 0;
+	size_t index_count = 0;
+	in.read((char*)&position_count, sizeof(position_count));
+	in.read((char*)&index_count, sizeof(index_count));
+
+	std::vector<Vector3> positions;
+	std::vector<uint16_t> indices;
+	positions.resize(position_count);
+	indices.resize(index_count);
+
+	in.read((char*)positions.data(), sizeof(Vector3) * position_count);
+	in.read((char*)indices.data(), sizeof(Vector3) * index_count);
+	in.close();
+
+	TriangulateMesh(mesh, positions, indices);
+}
+
+void TriangulateMesh(Mesh* mesh, const std::vector<Vector3>& positions, const std::vector<uint16_t>& indices)
+{
 	mesh->face_count = indices.size() / 3;
 	mesh->positions.resize(indices.size());
 	mesh->normals.resize(mesh->face_count);
@@ -121,9 +152,9 @@ void TriangulateMesh(Mesh* mesh, std::vector<uint16_t> indices)
 	for (size_t f = 0; f < mesh->face_count; f++)
 	{
 		size_t v = f * 3;
-		Vector3 v0 = positions_src[indices[v + 0]];
-		Vector3 v1 = positions_src[indices[v + 1]];
-		Vector3 v2 = positions_src[indices[v + 2]];
+		Vector3 v0 = positions[indices[v + 0]];
+		Vector3 v1 = positions[indices[v + 1]];
+		Vector3 v2 = positions[indices[v + 2]];
 		Vector3 n = Vector3Normalize(Vector3CrossProduct(Vector3Normalize(v1 - v0), Vector3Normalize(v2 - v0)));
 
 		mesh->positions[v + 0] = v0;
