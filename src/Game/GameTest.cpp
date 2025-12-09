@@ -13,6 +13,7 @@ enum MeshType
 {
 	MESH_TRIANGLE,
 	MESH_PLANE,
+	MESH_SPHERE,
 	MESH_TYPE_COUNT
 };
 
@@ -22,15 +23,6 @@ struct Mesh
 	std::vector<Vector3> positions;	// size is face_count * 3
 	std::vector<Vector3> normals;	// size is face_count
 };
-
-// Mesh binary (.vbo_nxt) file structure:
-//struct MeshVboNxt
-//{
-//	size_t position_count = 0;
-//	size_t index_count = 0;
-//	std::vector<Vector3> positions;
-//	std::vector<Vector3> indices;
-//};
 
 struct UniformData
 {
@@ -46,44 +38,14 @@ void TriangulateMesh(Mesh* mesh, const std::vector<Vector3>& positions, const st
 void UnloadMesh(Mesh* mesh);
 void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe = false);
 
+void InitMeshes();
+
 static float tt = 0.0f;
 static Mesh meshes[MESH_TYPE_COUNT];
 
 void Init()
 {
-	{
-		Mesh& m = meshes[MESH_TRIANGLE];
-		m.face_count = 1;
-
-		m.positions.resize(m.face_count * 3);
-		m.positions[0] = { 0.5f, -0.5f, 0.0f };
-		m.positions[1] = { 0.0f,  0.5f, 0.0f };
-		m.positions[2] = { -0.5f, -0.5f, 0.0f };
-
-		m.normals.resize(m.face_count);
-		m.normals[0] = Vector3UnitZ;
-	}
-
-	{
-		std::vector<Vector3> positions;
-		positions.resize(4);
-		positions[0] = { 0.5f, -0.5f, 0.0f };	// bottom-right
-		positions[1] = { 0.5f,  0.5f, 0.0f };	// top-right
-		positions[2] = { -0.5f,  0.5f, 0.0f };	// top-left
-		positions[3] = { -0.5f, -0.5f, 0.0f };	// bottom-left
-
-		std::vector<uint16_t> indices
-		{
-			0, 1, 3,
-			1, 2, 3
-		};
-
-		TriangulateMesh(&meshes[MESH_PLANE], positions, indices);
-	}
-
-	// Initialization sanity-check
-	for (int i = 0; i < MESH_TYPE_COUNT; i++)
-		assert(meshes[i].face_count > 0);
+	InitMeshes();
 }
 
 void Update(const float deltaTime)
@@ -199,6 +161,45 @@ void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe)
 		Vector3 n = world_normal * 0.5f + Vector3Ones * 0.5f; // [-1, 1] --> [0, 1]
 		App::DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, n.x, n.y, n.z, wireframe);
 	}
+}
+
+void InitMeshes()
+{
+	{
+		Mesh& m = meshes[MESH_TRIANGLE];
+		m.face_count = 1;
+
+		m.positions.resize(m.face_count * 3);
+		m.positions[0] = { 0.5f, -0.5f, 0.0f };
+		m.positions[1] = { 0.0f,  0.5f, 0.0f };
+		m.positions[2] = { -0.5f, -0.5f, 0.0f };
+
+		m.normals.resize(m.face_count);
+		m.normals[0] = Vector3UnitZ;
+	}
+
+	{
+		std::vector<Vector3> positions;
+		positions.resize(4);
+		positions[0] = { 0.5f, -0.5f, 0.0f };	// bottom-right
+		positions[1] = { 0.5f,  0.5f, 0.0f };	// top-right
+		positions[2] = { -0.5f,  0.5f, 0.0f };	// top-left
+		positions[3] = { -0.5f, -0.5f, 0.0f };	// bottom-left
+
+		std::vector<uint16_t> indices
+		{
+			0, 1, 3,
+			1, 2, 3
+		};
+
+		TriangulateMesh(&meshes[MESH_PLANE], positions, indices);
+	}
+
+	ImportMesh(&meshes[MESH_SPHERE], "./data/TestData/sphere.vbo_nxt");
+
+	// Initialization sanity-check
+	for (int i = 0; i < MESH_TYPE_COUNT; i++)
+		assert(meshes[i].face_count > 0);
 }
 
 void UnloadMesh(Mesh* mesh)
