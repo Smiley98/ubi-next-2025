@@ -32,8 +32,8 @@ void Update(const float deltaTime)
 
 void Render()
 {
-	Matrix world = MatrixTranslate(Vector3UnitX * 5.0f) * MatrixRotateZ(100.0f * tt * DEG2RAD);
-	//Matrix world = MatrixRotateZ(100.0f * tt * DEG2RAD) * MatrixRotateY(50.0f * tt * DEG2RAD) * MatrixTranslate(0.0f, 0.0f, 8.0f);
+	//Matrix world = MatrixTranslate(Vector3UnitX * 5.0f) * MatrixRotateZ(100.0f * tt * DEG2RAD);
+	Matrix world = MatrixRotateZ(100.0f * tt * DEG2RAD) * MatrixRotateY(50.0f * tt * DEG2RAD) * MatrixTranslate(0.0f, 0.0f, 8.0f);
 	Matrix view = MatrixLookAt({ 0.0f, 0.0f, 10.0f }, Vector3Zeros, Vector3UnitY);
 	Matrix proj = MatrixPerspective(90.0f * DEG2RAD, APP_VIRTUAL_WIDTH / (float)APP_VIRTUAL_HEIGHT, 0.1f, 100.0f);
 
