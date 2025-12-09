@@ -30,28 +30,63 @@ void Update(const float deltaTime)
 	tt += dt;
 }
 
+Vector3 ShadePositions(const UniformData& u, const Fragment& f)
+{
+	Vector3 c = Vector3Normalize(f.p) * 0.5f + Vector3Ones * 0.5f;
+	return c;
+}
+
+Vector3 ShadeNormals(const UniformData& u, const Fragment& f)
+{
+	Vector3 c = f.n * 0.5f + Vector3Ones * 0.5f;
+	return c;
+}
+
+Vector3 ShadePhong(const UniformData& u, const Fragment& f)
+{
+	Vector3 c = u.light_color;
+	return c;
+}
+
 void Render()
 {
 	//Matrix world = MatrixTranslate(Vector3UnitX * 5.0f) * MatrixRotateZ(100.0f * tt * DEG2RAD);
-	Matrix world = MatrixRotateZ(100.0f * tt * DEG2RAD) * MatrixRotateY(50.0f * tt * DEG2RAD) * MatrixTranslate(0.0f, 0.0f, 8.0f);
+	Matrix world = MatrixRotateZ(100.0f * tt * DEG2RAD) * MatrixRotateY(50.0f * tt * DEG2RAD) * MatrixTranslate(0.0f, 0.0f, 0.0f);
 	Matrix view = MatrixLookAt({ 0.0f, 0.0f, 10.0f }, Vector3Zeros, Vector3UnitY);
 	Matrix proj = MatrixPerspective(90.0f * DEG2RAD, APP_VIRTUAL_WIDTH / (float)APP_VIRTUAL_HEIGHT, 0.1f, 100.0f);
 
 	UniformData data;
 	data.world = world;
 	data.mvp = world * view * proj;
+	data.light_color = Vector3Normalize(Vector3UnitX + Vector3UnitY);
 
 	const CController& cont = CSimpleControllers::GetInstance().GetController();
 
-	static int mesh = MESH_SPHERE;
-	if (cont.CheckButton(App::BTN_DPAD_DOWN)) // Emulated as KEY_K
-		++mesh %= MESH_TYPE_COUNT;
-	
+	FragmentShader shaders[3];
+	shaders[0] = ShadePositions;
+	shaders[1] = ShadeNormals;
+	shaders[2] = ShadePhong;
+
+	// KEY_I
 	static bool wireframe = false;
-	if (cont.CheckButton(App::BTN_DPAD_UP)) // Emulated as KEY_I
+	if (cont.CheckButton(App::BTN_DPAD_UP))
 		wireframe = !wireframe;
 
-	DrawMesh(meshes[mesh], data, wireframe);
+	// KEY_K
+	static int mesh = MESH_HEAD;
+	if (cont.CheckButton(App::BTN_DPAD_DOWN))
+		++mesh %= MESH_TYPE_COUNT;
+
+	// KEY_J
+	static int shader = 2;
+	if (cont.CheckButton(App::BTN_DPAD_LEFT))
+		++shader %= 3;
+
+	// KEY_L
+	//if (cont.CheckButton(App::BTN_DPAD_RIGHT))
+	//	wireframe = !wireframe;
+
+	DrawMesh(meshes[mesh], data, shaders[shader]);
 }
 
 void Shutdown()

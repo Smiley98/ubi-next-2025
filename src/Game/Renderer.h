@@ -11,4 +11,12 @@ struct UniformData
 	Vector3 light_direction;
 };
 
-void DrawMesh(const Mesh& mesh, const UniformData& data, bool wireframe = false);
+struct Fragment
+{
+	Vector3 p;
+	Vector3 n;
+};
+
+using FragmentShader = Vector3(*)(const UniformData& u, const Fragment& f);
+
+void DrawMesh(const Mesh& mesh, const UniformData& data, FragmentShader shader, bool wireframe = false);

@@ -9,7 +9,7 @@ struct Face
 	Vector3 normal_world;
 };
 
-void DrawMesh(const Mesh& mesh, const UniformData& data, bool wireframe)
+void DrawMesh(const Mesh& mesh, const UniformData& data, FragmentShader shader, bool wireframe)
 {
 	Matrix normal_matrix = MatrixNormal(data.world);
 
@@ -50,9 +50,11 @@ void DrawMesh(const Mesh& mesh, const UniformData& data, bool wireframe)
 		Vector3 p = (face.positions_world[0] + face.positions_world[1] + face.positions_world[2]) / 3.0f;
 		Vector3 n = face.normal_world;
 
-		Vector3 c = n * 0.5f + Vector3Ones * 0.5f;
-		//Vector3 c = Vector3Normalize(p) * 0.5f + Vector3Ones * 0.5f;
+		Fragment frag;
+		frag.p = p;
+		frag.n = n;
 
-		App::DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, c.x, c.y, c.z, wireframe);
+		Vector3 color = shader(data, frag);
+		App::DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, color.x, color.y, color.z, wireframe);
 	}
 }
