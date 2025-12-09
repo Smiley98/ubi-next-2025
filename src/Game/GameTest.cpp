@@ -15,12 +15,24 @@ enum MeshType
 	MESH_TYPE_COUNT
 };
 
+enum ShaderType
+{
+	SHADER_POSITIONS,
+	SHADER_NORMALS,
+	SHADER_PHONG,
+	SHADER_TYPE_COUNT
+};
+
 static Mesh meshes[MESH_TYPE_COUNT];
+static FragmentShader shaders[SHADER_TYPE_COUNT];
 static void InitMeshes();
 
 void Init()
 {
 	InitMeshes();
+	shaders[SHADER_POSITIONS] = ShadePositions;
+	shaders[SHADER_NORMALS] = ShadeNormals;
+	shaders[SHADER_PHONG] = ShadePhong;
 }
 
 static float tt = 0.0f;
@@ -28,24 +40,6 @@ void Update(const float deltaTime)
 {
 	const float dt = deltaTime / 1000.0f;
 	tt += dt;
-}
-
-Vector3 ShadePositions(const UniformData& u, const Fragment& f)
-{
-	Vector3 c = Vector3Normalize(f.p) * 0.5f + Vector3Ones * 0.5f;
-	return c;
-}
-
-Vector3 ShadeNormals(const UniformData& u, const Fragment& f)
-{
-	Vector3 c = f.n * 0.5f + Vector3Ones * 0.5f;
-	return c;
-}
-
-Vector3 ShadePhong(const UniformData& u, const Fragment& f)
-{
-	Vector3 c = u.light_color;
-	return c;
 }
 
 void Render()
@@ -62,11 +56,6 @@ void Render()
 
 	const CController& cont = CSimpleControllers::GetInstance().GetController();
 
-	FragmentShader shaders[3];
-	shaders[0] = ShadePositions;
-	shaders[1] = ShadeNormals;
-	shaders[2] = ShadePhong;
-
 	// KEY_I
 	static bool wireframe = false;
 	if (cont.CheckButton(App::BTN_DPAD_UP))
@@ -78,7 +67,7 @@ void Render()
 		++mesh %= MESH_TYPE_COUNT;
 
 	// KEY_J
-	static int shader = 2;
+	static int shader = SHADER_PHONG;
 	if (cont.CheckButton(App::BTN_DPAD_LEFT))
 		++shader %= 3;
 
