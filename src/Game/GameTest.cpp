@@ -19,7 +19,7 @@ struct Mesh
 {
 	size_t face_count = 0;
 	std::vector<Vector3> positions;	// size is face_count * 3
-	std::vector<Vector3> normals;	// size is face_count * 3
+	std::vector<Vector3> normals;	// size is face_count
 };
 
 struct UniformData
@@ -118,17 +118,23 @@ void Shutdown()
 void TriangulateMesh(Mesh* mesh, std::vector<uint16_t> indices)
 {
 	std::vector<Vector3> positions_src = mesh->positions;
-	std::vector<Vector3> normals_src = mesh->normals;
 
-	mesh->positions.resize(indices.size());
-	mesh->normals.resize(indices.size());
 	mesh->face_count = indices.size() / 3;
+	mesh->positions.resize(indices.size());
+	mesh->normals.resize(mesh->face_count);
 
-	for (size_t i = 0; i < mesh->face_count * 3; i++)
+	for (size_t f = 0; f < mesh->face_count; f++)
 	{
-		uint16_t index = indices[i];
-		mesh->positions[i] = positions_src[index];
-		mesh->normals[i] = normals_src[index];
+		size_t v = f * 3;
+		Vector3 v0 = positions_src[indices[v + 0]];
+		Vector3 v1 = positions_src[indices[v + 1]];
+		Vector3 v2 = positions_src[indices[v + 2]];
+		Vector3 n = Vector3Normalize(Vector3CrossProduct(Vector3Normalize(v1 - v0), Vector3Normalize(v2 - v0)));
+
+		mesh->positions[v + 0] = v0;
+		mesh->positions[v + 1] = v1;
+		mesh->positions[v + 2] = v2;
+		mesh->normals[f] = n;
 	}
 }
 
@@ -137,7 +143,7 @@ void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe)
 	Matrix normal_matrix = MatrixNormal(data.world);
 	for (size_t f = 0; f < mesh.face_count; f++)
 	{
-		// Note -- just copy each vertex attribute 1 triangle at a time because we have better things to do than debug memory corruption...
+		Vector3 world_normal = mesh.normals[f] * normal_matrix;
 		size_t v = f * 3;
 
 		Vector3 world_positions[] =
@@ -145,13 +151,6 @@ void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe)
 			mesh.positions[v + 0],
 			mesh.positions[v + 1],
 			mesh.positions[v + 2]
-		};
-
-		Vector3 world_normals[] =
-		{
-			mesh.normals[v + 0],
-			mesh.normals[v + 1],
-			mesh.normals[v + 2]
 		};
 
 		Vector3 clip[] =
@@ -164,7 +163,6 @@ void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe)
 		for (size_t i = 0; i < 3; i++)
 		{
 			world_positions[i] *= data.world;
-			world_normals[i] *= normal_matrix;
 			clip[i] = MatrixPerspectiveDivide(data.mvp, clip[i]);
 		}
 
@@ -172,17 +170,8 @@ void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe)
 		Vector3 v1 = clip[1];
 		Vector3 v2 = clip[2];
 
-		// Potential data reduction -- divide normals by 3 when defining mesh because we know all 3 vertex normals are identical per-triangle
-		Vector3 n0 = world_normals[0];
-		Vector3 n1 = world_normals[1];
-		Vector3 n2 = world_normals[2];
-		Vector3 n = n0;	// <-- all 3 normals are identical per-face.
-
-		// Color based on normals remapped from [-1, 1] --> [0, 1]
-		Vector3 c = n;
-		c *= 0.5f;
-		c += Vector3Ones * 0.5f;
-		App::DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, c.x, c.y, c.z, wireframe);
+		Vector3 n = world_normal * 0.5f + Vector3Ones * 0.5f; // [-1, 1] --> [0, 1]
+		App::DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, n.x, n.y, n.z, wireframe);
 	}
 }
 
