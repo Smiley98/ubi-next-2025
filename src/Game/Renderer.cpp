@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "../ContestAPI/app.h"
+#include <algorithm>
 
 struct Face
 {
@@ -25,6 +26,16 @@ void DrawMesh(const Mesh& mesh, const UniformData& data, bool wireframe)
 		}
 		faces[f].normal_world = mesh.normals[f] * normal_matrix;
 	}
+
+	auto pr = [](const Face& a, const Face& b)
+	{
+		float avg_depth_a = (a.positions_clip[0].z + a.positions_clip[1].z + a.positions_clip[2].z) / 3.0f;
+		float avg_depth_b = (b.positions_clip[0].z + b.positions_clip[1].z + b.positions_clip[2].z) / 3.0f;
+		return avg_depth_a > avg_depth_b;
+	};
+
+	// Painter's Algorithm -- render furthest faces first, effectively removing the need for depth-testing!
+	std::sort(faces.begin(), faces.end(), pr);
 
 	for (const Face& face : faces)
 	{
