@@ -56,7 +56,7 @@ void Update(const float deltaTime)
 
 void Render()
 {
-	Matrix world = MatrixRotateZ(100.0f * tt * DEG2RAD) * MatrixRotateY(50.0f * tt * DEG2RAD) * MatrixTranslate(0.0f, 0.0f, 5.0f + sinf(tt) * 4.5f);
+	Matrix world = MatrixRotateZ(100.0f * tt * DEG2RAD) * MatrixRotateY(50.0f * tt * DEG2RAD) * MatrixTranslate(0.0f, 0.0f, 5.0f + sinf(tt) * 3.0f);
 	Matrix view = MatrixLookAt({ 0.0f, 0.0f, 10.0f }, Vector3Zeros, Vector3UnitY);
 	Matrix proj = MatrixPerspective(90.0f * DEG2RAD, APP_VIRTUAL_WIDTH / (float)APP_VIRTUAL_HEIGHT, 0.1f, 100.0f);
 
@@ -157,6 +157,10 @@ void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe)
 		Vector3 v0 = clip[0];
 		Vector3 v1 = clip[1];
 		Vector3 v2 = clip[2];
+
+		// Backface culling
+		Vector3 face_normal = Vector3Normalize(Vector3CrossProduct(Vector3Normalize(v1 - v0), Vector3Normalize(v2 - v0)));
+		if (Vector3DotProduct(face_normal, Vector3UnitZ) < 0.0f) continue;
 
 		Vector3 n = world_normal * 0.5f + Vector3Ones * 0.5f; // [-1, 1] --> [0, 1]
 		App::DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, n.x, n.y, n.z, wireframe);
