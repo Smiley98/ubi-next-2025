@@ -2,11 +2,8 @@
 #include <windows.h> 
 #endif
 
-#include <iostream>
-#include <fstream>
-#include <vector>
 #include <cassert>
-#include "raymath.h"
+#include "Renderer.h"
 #include "../ContestAPI/app.h"
 
 enum MeshType
@@ -17,37 +14,15 @@ enum MeshType
 	MESH_TYPE_COUNT
 };
 
-struct Mesh
-{
-	size_t face_count = 0;
-	std::vector<Vector3> positions;	// size is face_count * 3
-	std::vector<Vector3> normals;	// size is face_count
-};
-
-struct UniformData
-{
-	Matrix world;
-	Matrix mvp;
-
-	Vector3 light_color;
-	Vector3 light_direction;
-};
-
-void ImportMesh(Mesh* mesh, const char* filename);
-void TriangulateMesh(Mesh* mesh, const std::vector<Vector3>& positions, const std::vector<uint16_t>& indices);
-void UnloadMesh(Mesh* mesh);
-void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe = false);
-
-void InitMeshes();
-
-static float tt = 0.0f;
 static Mesh meshes[MESH_TYPE_COUNT];
+static void InitMeshes();
 
 void Init()
 {
 	InitMeshes();
 }
 
+static float tt = 0.0f;
 void Update(const float deltaTime)
 {
 	const float dt = deltaTime / 1000.0f;
@@ -81,96 +56,7 @@ void Render()
 void Shutdown()
 {
 	for (int i = 0; i < MESH_TYPE_COUNT; i++)
-		UnloadMesh(&meshes[i]);
-}
-
-void ImportMesh(Mesh* mesh, const char* filename)
-{
-	std::ifstream in;
-	in.open(filename, std::ios::binary);
-
-	size_t position_count = 0;
-	size_t index_count = 0;
-	in.read((char*)&position_count, sizeof(position_count));
-	in.read((char*)&index_count, sizeof(index_count));
-
-	std::vector<Vector3> positions;
-	std::vector<uint16_t> indices;
-	positions.resize(position_count);
-	indices.resize(index_count);
-
-	in.read((char*)positions.data(), sizeof(Vector3) * position_count);
-	in.read((char*)indices.data(), sizeof(Vector3) * index_count);
-	in.close();
-
-	TriangulateMesh(mesh, positions, indices);
-}
-
-void TriangulateMesh(Mesh* mesh, const std::vector<Vector3>& positions, const std::vector<uint16_t>& indices)
-{
-	mesh->face_count = indices.size() / 3;
-	mesh->positions.resize(indices.size());
-	mesh->normals.resize(mesh->face_count);
-
-	for (size_t f = 0; f < mesh->face_count; f++)
-	{
-		size_t v = f * 3;
-		Vector3 v0 = positions[indices[v + 0]];
-		Vector3 v1 = positions[indices[v + 1]];
-		Vector3 v2 = positions[indices[v + 2]];
-		Vector3 n = Vector3Normalize(Vector3CrossProduct(Vector3Normalize(v1 - v0), Vector3Normalize(v2 - v0)));
-
-		mesh->positions[v + 0] = v0;
-		mesh->positions[v + 1] = v1;
-		mesh->positions[v + 2] = v2;
-		mesh->normals[f] = n;
-	}
-}
-
-void DrawMesh(Mesh mesh, const UniformData& data, bool wireframe)
-{
-	Matrix normal_matrix = MatrixNormal(data.world);
-	for (size_t f = 0; f < mesh.face_count; f++)
-	{
-		Vector3 world_normal = mesh.normals[f] * normal_matrix;
-		size_t v = f * 3;
-
-		Vector3 world_positions[] =
-		{
-			mesh.positions[v + 0],
-			mesh.positions[v + 1],
-			mesh.positions[v + 2]
-		};
-
-		Vector3 clip[] =
-		{
-			mesh.positions[v + 0],
-			mesh.positions[v + 1],
-			mesh.positions[v + 2]
-		};
-
-		for (size_t i = 0; i < 3; i++)
-		{
-			world_positions[i] *= data.world;
-			clip[i] = MatrixPerspectiveDivide(data.mvp, clip[i]);
-		}
-
-		Vector3 v0 = clip[0];
-		Vector3 v1 = clip[1];
-		Vector3 v2 = clip[2];
-
-		// Backface culling
-		Vector3 face_normal = Vector3Normalize(Vector3CrossProduct(Vector3Normalize(v1 - v0), Vector3Normalize(v2 - v0)));
-		if (Vector3DotProduct(face_normal, Vector3UnitZ) < 0.0f) continue;
-
-		Vector3 p = (world_positions[0] + world_positions[1] + world_positions[2]) / 3.0f;
-		Vector3 n = world_normal;
-
-		//Vector3 c = n * 0.5f + Vector3Ones * 0.5f;
-		Vector3 c = Vector3Normalize(p) * 0.5f + Vector3Ones * 0.5f;
-
-		App::DrawTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, c.x, c.y, c.z, wireframe);
-	}
+		MeshUnload(&meshes[i]);
 }
 
 void InitMeshes()
@@ -202,19 +88,12 @@ void InitMeshes()
 			1, 2, 3
 		};
 
-		TriangulateMesh(&meshes[MESH_PLANE], positions, indices);
+		MeshTriangulate(&meshes[MESH_PLANE], positions, indices);
 	}
 
-	ImportMesh(&meshes[MESH_SPHERE], "./data/TestData/sphere.vbo_nxt");
+	MeshImport(&meshes[MESH_SPHERE], "./data/TestData/sphere.vbo_nxt");
 
 	// Initialization sanity-check
 	for (int i = 0; i < MESH_TYPE_COUNT; i++)
 		assert(meshes[i].face_count > 0);
-}
-
-void UnloadMesh(Mesh* mesh)
-{
-	mesh->positions.resize(0);
-	mesh->normals.resize(0);
-	mesh->face_count = 0;
 }
