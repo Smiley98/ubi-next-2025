@@ -12,6 +12,7 @@ enum MeshType
 	MESH_PLANE,
 	MESH_SPHERE,
 	MESH_HEAD,
+	MESH_CT4,
 	MESH_TYPE_COUNT
 };
 
@@ -44,8 +45,8 @@ void Update(const float deltaTime)
 
 void Render()
 {
-	Vector3 eye = { 0.0f, 0.0f, 10.0f };
-	Matrix world = MatrixScale(Vector3Ones * 3.0f);// *MatrixRotateY(100.0f * tt * DEG2RAD)* MatrixTranslate(0.0f, 0.0f, 0.0f);
+	Vector3 eye = { 0.0f, 5.0f, 10.0f };
+	Matrix world = MatrixScale(Vector3Ones * 0.5f);// *MatrixRotateY(100.0f * tt * DEG2RAD)* MatrixTranslate(0.0f, 0.0f, 0.0f);
 	Matrix view = MatrixLookAt(eye, Vector3Zeros, Vector3UnitY);
 	Matrix proj = MatrixPerspective(90.0f * DEG2RAD, APP_VIRTUAL_WIDTH / (float)APP_VIRTUAL_HEIGHT, 0.1f, 100.0f);
 
@@ -57,7 +58,7 @@ void Render()
 	data.object_color = Vector3Normalize(Vector3UnitX);
 
 	data.light_color = Vector3Ones;
-	data.light_position = { sinf(tt) * 10.0f, 0.0f, 10.0f };
+	data.light_position = { sinf(tt) * 10.0f, 5.0f, 10.0f };
 	data.ambient_strength = 0.1f;
 	data.diffuse_strength = 0.5f;
 	data.specular_strength = 0.25f;
@@ -84,7 +85,7 @@ void Render()
 	//if (cont.CheckButton(App::BTN_DPAD_RIGHT))
 	//	wireframe = !wireframe;
 
-	DrawMesh(meshes[mesh], data, shaders[shader]);
+	DrawMesh(meshes[mesh], data, shaders[shader], wireframe);
 }
 
 void Shutdown()
@@ -127,6 +128,7 @@ void InitMeshes()
 
 	MeshImport(&meshes[MESH_SPHERE], "./data/TestData/sphere.vbo_nxt");
 	MeshImport(&meshes[MESH_HEAD], "./data/TestData/head.vbo_nxt");
+	MeshImport(&meshes[MESH_CT4], "./data/TestData/ct4.vbo_nxt");
 
 	// Initialization sanity-check
 	for (int i = 0; i < MESH_TYPE_COUNT; i++)
